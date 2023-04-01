@@ -1,0 +1,331 @@
+<?php
+/**
+* EXAMPLE CUSTOM ADVANCED LAYOUT BUILDER ELEMENT USING PRODUCT ATTRIBUTES
+* 
+* 
+*/
+if ( ! defined( 'ABSPATH' ) ) {  exit;  }
+
+if ( ! class_exists( 'avia_productgrid_attributes_element' ) ) {
+
+class avia_productgrid_attributes_element extends aviaShortcodeTemplate {
+/**
+ * Create the config array for the shortcode button
+ */
+function shortcode_insert_button() {
+	$this->config['version']		= '1.0';
+	$this->config['self_closing']	= 'yes';
+
+	$this->config['name']			= __( 'Product Grid Attributes', 'avia_framework' );
+	$this->config['tab']			= __( 'Plugin Additions', 'avia_framework' );
+	$this->config['icon']			= AviaBuilder::$path['imagesURL'] . 'sc-portfolio.png';
+	$this->config['order']			= 100;
+	$this->config['target']			= 'avia-target-insert';
+	$this->config['shortcode'] 		= 'av_productgrid_attributes_shortcode';
+	$this->config['tinyMCE'] 	    = array('disable' => true);
+	$this->config['tooltip'] 	    = __( 'Display product elements based on attributes', 'avia_framework' );
+	$this->config['preview'] 		= 'no';
+	$this->config['id_name']		= 'id';
+	$this->config['id_show']		= 'yes';
+}
+
+/**
+ * Custom Fields
+ *
+ * Here are the fields you can use for the element that a content editor can fill out
+ *
+ * @return void
+ */
+ 
+ 
+function popup_elements() 
+{
+ 			
+	$this->elements = array(	
+				
+		array(
+				'type' 	=> 'tab_container', 
+				'nodescription' => true
+			),						
+		array(
+				'type' 	=> 'tab',
+				'name'  => __( 'Content', 'avia_framework' ),
+				'nodescription' => true
+			),						
+		
+		
+			array(	
+				'name'			=> __( 'Enter the product attribute texanomy', 'avia_framework' ),
+				'desc'			=> __( 'Put your field value here for example "Format"', 'avia_framework' ),
+				'id'			=> 'product_attribute_texanomy',
+				'fetch'			=> 'product_attribute_texanomy',
+				'container_class' => 'avia-element-fullwidth',
+				'type'  => 'input',
+				'std'			=> ''
+			),
+			
+			array(	
+				'name'			=> __( 'Enter the product attribute term name', 'avia_framework' ),
+				'desc'			=> __( 'Put your field value here for example "Perusal Script - Digita"', 'avia_framework' ),
+				'id'			=> 'product_attribute_term',
+				'fetch'			=> 'product_attribute_term',
+				'container_class' => 'avia-element-fullwidth',
+				'type'  => 'input',
+				'std'			=> ''
+			),
+			
+			array(	
+				'name'			=> __( 'Columns', 'avia_framework' ),
+				'desc'			=> __( 'How many columns should be displayed? For example "2,3,4,5" Default value is 3', 'avia_framework' ),
+				'id'			=> 'product_attribute_term_col',
+				'fetch'			=> 'product_attribute_term_col',
+				'container_class' => 'avia-element-fullwidth',
+				'type'  => 'input',
+				'std'			=> '3'
+			),
+			
+			array(	
+				'name'			=> __( 'Enter number of products need to display', 'avia_framework' ),
+				'desc'			=> __( 'Put your field value here for example "5,7,10". For all products "-1"', 'avia_framework' ),
+				'id'			=> 'product_attribute_numberproduct',
+				'fetch'			=> 'product_attribute_numberproduct',
+				'container_class' => 'avia-element-fullwidth',
+				'type'  => 'input',
+				'std'			=> ''
+			),
+			
+			array(
+				'type' 	=> 'tab_close',
+				'nodescription' => true
+			),
+				
+			array(
+				'type' 	=> 'tab_container_close',
+				'nodescription' => true
+			),	
+		);				
+}
+	
+		
+/**
+ * Editor Element - this function defines the visual appearance of an element on the AviaBuilder Canvas
+ * Most common usage is to define some markup in the $params['innerHtml'] which is then inserted into the drag and drop container
+ * Less often used: $params['data'] to add data attributes, $params['class'] to modify the className
+ *
+ *
+ * @param array $params this array holds the default values for $content and $args.
+ * @return $params the return array usually holds an innerHtml key that holds item specific markup.
+ */
+function editor_element( $params )
+{
+
+	$params = parent::editor_element( $params );
+	return $params;
+
+}
+
+
+
+
+
+function shortcode_handler( $atts, $content = '', $shortcodename = '', $meta = '' )
+{
+			global $avia_config;
+			global $woocommerce;
+			
+			
+			$args = array(
+			   'post_type' => 'product',
+			   'post_status' => 'publish',
+			   'posts_per_page' => $att['product_attribute_numberproduct'],
+			   'tax_query' => array(
+				  array(
+					 'taxonomy' => $atts['product_attribute_texanomy'], // attribute taxonomy slug
+					 'field' => 'slug', // attribute field type
+					 'terms' => $atts['product_attribute_term'] // attribute term slug
+				  )
+			   )
+			);
+			
+			$products = wc_get_products( $args );
+			
+			
+			$output = '';		
+			$output .= '<div class="product_attr_grid shop_columns_'.$atts['product_attribute_term_col'].'">';
+			//$output .= '<h2>'. $atts['product_attribute_term'] .'</h2>'; 
+			$output .= '<div class="inner_product_attr_grid products " data-attr="'.$atts['product_attribute_term_col'].'">';
+			
+			if ( ! empty( $products ) ) {
+			
+			   foreach ( $products as $product ) {
+			
+				  
+				  // Get the featured image ID for the product
+				  $image_id = $product->get_image_id();
+			
+				  // If the product does not have a featured image, use a default image
+				  if ( ! $image_id ) {
+					 $image_id = get_option( 'woocommerce_placeholder_image', 0 );
+				  }
+				  
+				  $stock_status = $product->get_stock_status();
+				  
+				  
+				  $id = $product->id;
+
+				$casting = get_field( "casting", $id );
+				$runtime = get_field( "run_time", $id );
+
+				if(!empty($casting) && !empty($runtime))
+				{
+			
+					$metadata = '<div class="main-prodmeta">
+			
+					<div class="prodmeta-inner">
+						<div class="prodmeta_block_head">Casting</div>
+						<div class="prodmeta_block_head">Run Time</div>
+					</div>
+			
+					<div class="prodmeta-inner">
+						<div class="prodmeta_block_desc">'.$casting.'</div>
+						<div class="prodmeta_block_desc">'.$runtime.'</div>
+					</div>
+			
+				   </div>';
+				}
+				  
+				  
+
+				  if ( $stock_status === 'instock' ) {
+			
+					 // Display the product	                            
+					 $output .= '<div class="product_block product type-product post-'.$product->get_id().'">';
+					 $output .= '<div class="product_image"><a href="' . esc_url( $product->get_permalink() ) . '">'. wp_get_attachment_image( $image_id, 'medium' ) .'</a></div>';
+					 $output .= '<div class="product_title"><a href="' . esc_url( $product->get_permalink() ) . '">' . $product->get_name() . '</a></div>';
+					 //$output .= '<div class="product_desc">' . $product->get_price_html() . '</div>';
+					 $output .= $metadata;
+					 $output .= '</div>';
+			     
+				 }
+				 
+				 
+			   }
+			   
+			} 
+			else 
+			{
+			   $output .= 'No products found';
+			}
+						
+		
+			$output .= '</div>';	
+					
+			$output .= '</div>';	
+			
+			
+			$output .= "<style>
+				.product_attr_grid .inner_product_attr_grid
+				{
+					display: grid;
+					grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+					grid-gap: 20px;
+					text-align: center;
+				}
+				
+				.product_attr_grid .inner_product_attr_grid .product_block.product.type-product 
+				{
+					width: 100% !important;
+					border: 1px solid #b0b0b0;
+					background-color: #fff;
+				}
+				
+				.product_attr_grid .inner_product_attr_grid .product_block .product_title a
+				{
+					margin: 10px;
+					font-size: 1em;
+					line-height: 1.3em;
+					font-weight: normal;
+					color: #000;
+					padding-bottom: 10px;
+					padding-top: 10px;
+				}
+				
+				.product_attr_grid .inner_product_attr_grid .product_block .product_image
+				{
+					border-bottom: 1px solid #b0b0b0;
+				}
+				
+				.product_attr_grid h2
+				{
+					text-transform: capitalize !important;
+					text-align: center;
+					margin-bottom: 30px;
+					margin-top: 30px;
+					display: block;
+				}
+				
+				.product_attr_grid .inner_product_attr_grid .product_block .product_image img
+				{
+				    max-height: 270px;
+				}
+				
+				@media(max-width:1199px)
+				{
+					.product_attr_grid .inner_product_attr_grid 
+					{
+						grid-template-columns: 1fr 1fr 1fr 1fr;
+					}
+				}
+				
+				
+				@media(max-width:990px)
+				{
+					.product_attr_grid .inner_product_attr_grid 
+					{
+						grid-template-columns: 1fr 1fr 1fr !important;
+					}
+				}
+				
+				
+				@media(max-width:767px)
+				{
+					.product_attr_grid .inner_product_attr_grid 
+					{
+						grid-template-columns: 1fr 1fr !important;
+					}
+				}
+				
+				
+				@media(max-width:480px)
+				{
+					.product_attr_grid .inner_product_attr_grid .product_block .product_image img 
+					{
+						max-height: inherit;
+						margin: 0 auto;
+					}
+				
+					.product_attr_grid .inner_product_attr_grid 
+					{
+						grid-template-columns: 1fr !important;
+					}
+				}
+				
+				
+			</style>
+			";
+			
+								
+			return $output;
+	
+
+			
+		}
+
+
+
+
+
+
+}
+}
+?>
